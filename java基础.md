@@ -483,6 +483,20 @@ hashTable
 
 TreeMap 是一个有序的key-value集合，它是通过红黑树实现的。
 
+~~~java
+public class TreeMap<K,V>
+    extends AbstractMap<K,V>
+    implements NavigableMap<K,V>, Cloneable, java.io.Serializable
+~~~
+
+实现了NavigableMap接口，可以有一些HashMap不具有的方法
+
+> **tailMap(K fromKey)** 方法用于返回此映射，其键大于或等于fromKey的部分视图。返回的映射受此映射支持，因此改变返回映射反映在此映射中，反之亦然。
+>
+> **headMap(K fromKey)** 与之相反
+>
+> **firstKey** 返回第一个key
+
 ### ConcurrentHashMap
 
 1、并发控制与分段锁思想

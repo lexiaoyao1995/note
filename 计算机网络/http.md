@@ -1,5 +1,3 @@
-[TOC]
-
 * [HTTP](#http)
   * [主要特点](#%E4%B8%BB%E8%A6%81%E7%89%B9%E7%82%B9)
   * [http请求](#http%E8%AF%B7%E6%B1%82)
@@ -15,6 +13,8 @@
   * [Session和Cookies](#session%E5%92%8Ccookies)
     * [cookie](#cookie)
         * [缺点](#%E7%BC%BA%E7%82%B9)
+        * [Http中的相关字段](#http%E4%B8%AD%E7%9A%84%E7%9B%B8%E5%85%B3%E5%AD%97%E6%AE%B5)
+        * [cookies字段](#cookies%E5%AD%97%E6%AE%B5)
     * [session](#session)
         * [session实现方式](#session%E5%AE%9E%E7%8E%B0%E6%96%B9%E5%BC%8F)
     * [区别](#%E5%8C%BA%E5%88%AB)
@@ -258,6 +258,25 @@ PATCH 对后台来说 PATCH 方法的参数只包含我们需要修改的资源�
 - cookie会被附加在每个HTTP请求中，所以无形中增加了流量。
 - 由于在HTTP请求中的cookie是明文传递的，所以安全性成问题。（除非用HTTPS)
 - Cookie的大小限制在4KB左右。对于复杂的存储需求来说是不够用的。
+
+##### Http中的相关字段
+
+Set-Cookie
+
+##### cookies字段
+
+> COOKIE主要有哪些字段呢：
+>
+> 1、name  COOKIE的名字
+>
+> 2、value  COOKIE对应的值
+>
+> 3、domain   域名   就是说这个COOKIE对应哪一个域名有效
+>
+> 4、path     路径 ， COOKIE对应的哪一个路径才会有效
+>
+> 5、expires/Max-Age 字段为此cookie超时时间。若设置其值为一个时间，那么当到达此时间后，此cookie失效。不设置的话默认值是Session，意思是cookie会和session一起失效。当浏览器关闭(不是浏览器标签页，而是整个浏览器) 后，此cookie失效。
+
 
 ### session
 

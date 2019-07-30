@@ -182,27 +182,27 @@ tcp考虑到处理网络问题导致大量重传导致网络恶化，tcp提供�
 >
 > **为了在发送端调节所要发送的数据量，定义了一个“拥塞窗口”（Congestion Window），在发送数据时，将拥塞窗口的大小与接收端ack的窗口大小做比较，取较小者作为发送数据量的上限。**
 >
-> 1.慢启动：意思是刚刚加入网络的连接，一点一点地提速，不要一上来就把路占满。 
-> 连接建好的开始先初始化cwnd = 1，表明可以传一个MSS大小的数据。 
-> 每当收到一个ACK，cwnd++; 呈线性上升 
-> 每当过了一个RTT，cwnd = cwnd*2; 呈指数让升 
-> 阈值ssthresh（slow start threshold），是一个上限，当cwnd >= ssthresh时，就会进入“拥塞避免算法” 
-> 2.拥塞避免：当拥塞窗口 cwnd 达到一个阈值时，窗口大小不再呈指数上升，而是以线性上升，避免增长过快导致网络拥塞。 
-> 每当收到一个ACK，cwnd = cwnd + 1/cwnd 
-> 每当过了一个RTT，cwnd = cwnd + 1 
-> 拥塞发生：当发生丢包进行数据包重传时，表示网络已经拥塞。分两种情况进行处理： 
-> 等到RTO超时，重传数据包 
-> sshthresh = cwnd /2 
-> cwnd 重置为 1 
-> 3.进入慢启动过程 
-> 在收到3个duplicate ACK时就开启重传，而不用等到RTO超时 
-> sshthresh = cwnd = cwnd /2 
-> 进入快速恢复算法——Fast Recovery 
-> 4.快速恢复：至少收到了3个Duplicated Acks，说明网络也不那么糟糕，可以快速恢复。 
-> cwnd = sshthresh + 3 * MSS （3的意思是确认有3个数据包被收到了） 
-> 重传Duplicated ACKs指定的数据包 
-> 如果再收到 duplicated Acks，那么cwnd = cwnd +1 
-> 如果收到了新的Ack，那么，cwnd = sshthresh ，然后就进入了拥塞避免的算法了
+> * 慢启动：意思是刚刚加入网络的连接，一点一点地提速，不要一上来就把路占满。 
+>   连接建好的开始先初始化cwnd = 1，表明可以传一个MSS大小的数据。 
+>   每当收到一个ACK，cwnd++; 呈线性上升 
+>   每当过了一个RTT，cwnd = cwnd*2; 呈指数让升 
+>   阈值ssthresh（slow start threshold），是一个上限，当cwnd >= ssthresh时，就会进入“拥塞避免算法” 
+> * 拥塞避免：当拥塞窗口 cwnd 达到一个阈值时，窗口大小不再呈指数上升，而是以线性上升，避免增长过快导致网络拥塞。 
+>   每当收到一个ACK，cwnd = cwnd + 1/cwnd 
+>   每当过了一个RTT，cwnd = cwnd + 1 
+>   拥塞发生：当发生丢包进行数据包重传时，表示网络已经拥塞。分两种情况进行处理： 
+>   等到RTO超时，重传数据包 
+>   sshthresh = cwnd /2 
+>   cwnd 重置为 1 
+> * 进入慢启动过程 
+>   在收到3个duplicate ACK时就开启重传，而不用等到RTO超时 
+>   sshthresh = cwnd = cwnd /2 
+>   进入快速恢复算法——Fast Recovery 
+> * 快速恢复：至少收到了3个Duplicated Acks，说明网络也不那么糟糕，可以快速恢复。 
+>   cwnd = sshthresh + 3 * MSS （3的意思是确认有3个数据包被收到了） 
+>   重传Duplicated ACKs指定的数据包 
+>   如果再收到 duplicated Acks，那么cwnd = cwnd +1 
+>   如果收到了新的Ack，那么，cwnd = sshthresh ，然后就进入了拥塞避免的算法了
 
 ## TCP状态转化
 

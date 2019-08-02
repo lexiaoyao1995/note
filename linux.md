@@ -1,4 +1,3 @@
-[TOC]
 * [概念](#%E6%A6%82%E5%BF%B5)
       * [JMH](#jmh)
 * [linux](#linux)
@@ -19,15 +18,12 @@
       * [github flow](#github-flow)
       * [gitlab flow](#gitlab-flow)
     * [git merge 和 git rebase](#git-merge-%E5%92%8C-git-rebase)
+    * [git fetch 和git pull 的差别](#git-fetch-%E5%92%8Cgit-pull-%E7%9A%84%E5%B7%AE%E5%88%AB)
       * [常用命令](#%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4)
 
 # 概念
 
 ![](pic/爱奇艺20190709131032.png)
-
-#### JMH
-
-
 
 # linux
 
@@ -161,9 +157,18 @@ prod作为发布版本
 
 ### git merge 和 git rebase
 
-merge是提交commit来修改
+在分支合并时，有两种方式：git merge 和git rebase。
 
-rebase是修改提交历史记录
+git merge：将两个分支，合并提交为一个新提交，并且新提交有2个parent。
+
+git rebase：会取消分支中的每个提交，并把他们临时存放，然后把当前分支更新到最新的origin分支，最后再吧所有提交应用到分支上。
+
+### git fetch 和git pull 的差别
+
+1. git fetch 相当于是从远程获取最新到本地，不会自动merge
+
+2. git pull：相当于是从远程获取最新版本并merge到本地
+3. 在实际使用中，git fetch更安全一些
 
 #### 常用命令
 

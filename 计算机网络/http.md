@@ -10,6 +10,13 @@
       * [delete](#delete)
   * [header](#header)
   * [状态码](#%E7%8A%B6%E6%80%81%E7%A0%81)
+    * [206断点续传](#206%E6%96%AD%E7%82%B9%E7%BB%AD%E4%BC%A0)
+      * [Range](#range)
+      * [Content\-Range](#content-range)
+      * [ETag](#etag)
+      * [<strong>If\-Match  If\-Modified\-Since</strong>](#if-match--if-modified-since)
+      * [多线程下载：](#%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%B8%8B%E8%BD%BD)
+      * [单线程和多线程下载速度比较](#%E5%8D%95%E7%BA%BF%E7%A8%8B%E5%92%8C%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%B8%8B%E8%BD%BD%E9%80%9F%E5%BA%A6%E6%AF%94%E8%BE%83)
   * [Session和Cookies](#session%E5%92%8Ccookies)
     * [cookie](#cookie)
         * [缺点](#%E7%BC%BA%E7%82%B9)
@@ -243,6 +250,50 @@ PATCH 对后台来说 PATCH 方法的参数只包含我们需要修改的资源�
 | 503  | Service Unavailable             | 由于超载或系统维护，服务器暂时的无法处理客户端的请求。延时的长度可包含在服务器的Retry-After头信息中 |
 | 504  | Gateway Time-out                | 充当网关或代理的服务器，未及时从远端服务器获取请求           |
 | 505  | HTTP Version not supported      | 服务器不支持请求的HTTP协议的版本，无法完成处理               |
+
+### 206断点续传
+
+HTTP断点续传
+
+  请求头 Range：客户端发请求的范围
+
+  响应头 Content-Range：服务端返回当前请求范围和文件总大小
+
+  续传成功返回206 
+
+  文件又变动，返回200和新文件内容
+
+> HTTP1.1 协议（RFC2616）开始支持获取文件的部分内容，这为并行下载以及断点续传提供了技术支持。它**通过在 Header 里两个参数实现的，客户端发请求时对应的是 Range ，服务器端响应时对应的是 Content-Range。**
+
+#### Range
+
+用于请求头中，指定第一个字节的位置和最后一个字节的位置，一般格式：
+
+Range:(unit=first byte pos)-[last byte pos]
+
+#### Content-Range
+
+用于响应头中，在发出带 Range 的请求后，服务器会在 Content-Range 头部**返回当前接受的范围和文件总大小。**一般格式：
+
+Content-Range: bytes (unit first byte pos) - [last byte pos]/**[entity legth]**
+
+#### ETag
+
+但是在实际场景中，会出现一种情况，即在终端发起续传请求时，URL对应的文件内容在服务端已经发生变化，此时续传的数据肯定是错误的。如何解决这个问题了？显然此时我们需要有一个标识文件唯一性的方法。在RFC2616中也有相应的定义，比如实现Last-Modified来标识文件的最后修改时间，这样即可判断出续传文件时是否已经发生过改动。同时RFC2616中还定义有一个ETag的头，可以使用ETag头来放置文件的唯一标识，比如文件的MD5值。
+
+#### **If-Match  If-Modified-Since**
+
+终端在发起续传请求时应该在HTTP头中申明**If-Match 或者If-Modified-Since** 字段，帮助服务端判别文件变化。 
+
+#### 多线程下载：
+
+主要就是在请求头里加上range
+
+#### 单线程和多线程下载速度比较
+
+如果客户端和服务器某一方网速达到了极限，用什么都一样，并且这时多线程还会有上下文切换的开销，所以还不如单线程
+
+如果客户端没有达到瓶颈，服务端又限制了单线程的速度且可以使用多线程的情况下，多线程下载当然会快．  
 
 ## Session和Cookies
 

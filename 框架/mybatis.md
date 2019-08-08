@@ -28,7 +28,7 @@ TypeHandler用于数据库类型和java类的相互映射
 
 ## 处理流程
 
-![](C:/Users/zhouguo_sx/Desktop/interview_pub/pic/%E7%88%B1%E5%A5%87%E8%89%BA20190710101353.png)
+![](../pic/%E7%88%B1%E5%A5%87%E8%89%BA20190710101353.png)
 
 ## 一级二级缓存
 

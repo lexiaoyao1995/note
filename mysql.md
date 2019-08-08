@@ -37,6 +37,14 @@
   * [优化](#%E4%BC%98%E5%8C%96)
   * [SQL语句](#sql%E8%AF%AD%E5%8F%A5)
       * [常用](#%E5%B8%B8%E7%94%A8)
+* [MariaDB](#mariadb)
+    * [区别](#%E5%8C%BA%E5%88%AB-1)
+* [Tidb](#tidb)
+    * [架构](#%E6%9E%B6%E6%9E%84)
+* [SQL 、 NoSQL 和 NewSQL 的优缺点比较](#sql--nosql-%E5%92%8C-newsql-%E7%9A%84%E4%BC%98%E7%BC%BA%E7%82%B9%E6%AF%94%E8%BE%83)
+  * [SQL](#sql)
+  * [NoSQL (Not Only SQL)](#nosql-not-only-sql)
+  * [NewSQL](#newsql)
 
 # Mysql
 
@@ -599,3 +607,65 @@ count sum max min avg
 2、where过滤行，having过滤组
 
 3、出现在同一sql的顺序，where>group by>having
+
+
+
+# MariaDB 
+
+MariaDB数据库管理系统是MySQL的一个分支，主要由开源社区在维护，采用GPL授权许可。开发这个分支的原因之一是：甲骨文公司收购了MySQL后，有将MySQL闭源的潜在风险，因此社区采用分支的方式来避开这个风险。
+
+MariaDB的目的是完全兼容MySQL，包括API和命令行，使之能轻松成为MySQL的代替品。
+
+在存储引擎方面，10.0.9版起使用XtraDB（名称代号为Aria）来代替MySQL的InnoDB。
+
+### 区别
+
+**json支持**
+
+从 5.7 版本开始，MySQL 支持由 RFC 7159 定义的原生 JSON 数据类型，可以高效地访问 JSON 文档中的数据。MariaDB不支持
+
+**线程池**
+
+MariaDB 支持连接线程池，这对于短查询和 CPU 密集型的工作负载（OLTP）来说非常有用。在 MySQL 的社区版本中，线程数是固定的，因而限制了这种灵活性。MySQL 计划在企业版中增加线程池功能。
+
+# Tidb
+
+我们的程序没有任何改动就完成了数据库从mysql到TiDb的转换，TiDB 是一个分布式 NewSQL 数据库
+
+### 架构
+
+１TiDB Server
+　TiDB Server 负责接收 SQL 请求，处理 SQL 相关的逻辑，并通过 PD 找到存储计算所需数据的 TiKV 地址，与 TiKV 交互获取数据，最终返回结果。 TiDB Server是无状态的，其本身并不存储数据，只负责计算，可以无限水平扩展，可以通过负载均衡组件（如LVS、HAProxy 或F5）对外提供统一的接入地址。
+２PD Server
+　Placement Driver (简称 PD) 是整个集群的管理模块，其主要工作有三个： 一是存储集群的元信息（某个 Key 存储在哪个 TiKV 节点）；二是对 TiKV 集群进行调度和负载均衡（如数据的迁移、Raft group leader的迁移等）；三是分配全局唯一且递增的事务 ID。 　　
+　PD 是一个集群，需要部署奇数个节点，一般线上推荐至少部署 3 个节点。
+３TiKV Server
+　TiKV Server 负责存储数据，从外部看 TiKV 是一个分布式的提供事务的 Key-Value 存储引擎。存储数据的基本单位是 Region，每个 Region 负责存储一个 Key Range （从 StartKey 到EndKey 的左闭右开区间）的数据，每个 TiKV 节点会负责多个 Region 。TiKV 使用 Raft协议做复制，保持数据的一致性和容灾。副本以 Region 为单位进行管理，不同节点上的多个 Region 构成一个 RaftGroup，互为副本。数据在多个 TiKV 之间的负载均衡由 PD 调度，这里也是以 Region 为单位进行调度。
+
+# SQL 、 NoSQL 和 NewSQL 的优缺点比较
+
+## SQL
+
+SQL是关系型数据库管理系统（RDBMS），顾名思义，它是围绕关系代数和元组关系演算构建的。 70年代以来，它一直是主要的数据库解决方案，只是最近才有了其他产品的空间。 不管有些人说什么，这意味着它一直能出色地执行广泛的任务。 其主要优点如下：
+
+- 不同的角色（开发者，用户，数据库管理员）使用相同的语言。
+- 不同的RDBMS使用统一标准的语言。
+- SQL使用一种高级的非结构化查询语言。.
+- 它坚持 [ACID](http://searchsqlserver.techtarget.com/definition/ACID) 准则 (原子性，一致性，隔离性，持久性),，这些准则保证了数据库尤其是每个事务的稳定性，安全性和可预测性。
+
+## NoSQL (Not Only SQL)
+
+NoSQL越来越受欢迎，其中最重要的实现是Apache Cassandra，MongoDB等产品。 它主要用于解决SQL的可扩展性问题。 因此，它是没有架构的并且建立在分布式系统上，这使得它易于扩展和分片。
+
+然而，这些好处是以放宽ACID原则为代价的：NoSQL采取最终一致性原则，而不是所有四个参数在每个事务中保持一致。 这意味着如果在特定时间段内没有特定数据项的更新，则最终对其所有的访问都将返回最后更新的值。 这就是这样的系统通常被描述为提供基本保证的原因（基本可用，软状态，最终一致性） — 而不是ACID。
+
+虽然这个方案极大地增加了可用时间和伸缩性,它也会导致数据丢失----这个问题的严重程度取决于数据库服务器的支持情况和应用代码质量.在某些情况下,这个问题十分严重.
+
+## NewSQL
+
+NewSQL是一种相对较新的形式，旨在使用现有的编程语言和以前不可用的技术来结合SQL和NoSQL中最好的部分。 NewSQL目标是将SQL的ACID保证与NoSQL的可扩展性和高性能相结合。
+
+显然，因为结合了过去仅单独存在的优点，NewSQL看起来很有前途; 或许，在未来的某个时候，它将成为大多数人使用的标准。 不幸的是，目前大多数NewSQL数据库都是专有软件或仅适用于特定场景，这显然限制了新技术的普及和应用。
+
+除此之外，NewSQL在每个方面比较均匀，每个解决方案都有自己的缺点和优势。 例如，SAP HANA可以轻松处理低到中等的事务性工作负载，但不使用本机集群，MemSQL对于集群分析很有用，但在ACID事务上表现出较差的一致性，等等。 因此，在这些解决方案变得真正普及之前，可能还需要一段时间。
+

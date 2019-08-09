@@ -1,4 +1,3 @@
-[TOC]
 * [spring](#spring)
   * [IOC](#ioc)
       * [依赖注入方式](#%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5%E6%96%B9%E5%BC%8F)
@@ -21,6 +20,9 @@
     * [AOP主要名词概念](#aop%E4%B8%BB%E8%A6%81%E5%90%8D%E8%AF%8D%E6%A6%82%E5%BF%B5)
     * [Advice的种类](#advice%E7%9A%84%E7%A7%8D%E7%B1%BB)
     * [aop的实现：jdkProxy和Cglib](#aop%E7%9A%84%E5%AE%9E%E7%8E%B0jdkproxy%E5%92%8Ccglib)
+      * [jdkProxy](#jdkproxy)
+      * [Cglib](#cglib)
+      * [区别](#%E5%8C%BA%E5%88%AB)
     * [spring里代理模式的实现](#spring%E9%87%8C%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F%E7%9A%84%E5%AE%9E%E7%8E%B0)
   * [事务](#%E4%BA%8B%E5%8A%A1)
     * [ACID](#acid)
@@ -274,7 +276,86 @@ JDKProxy的核心：InvocationHandler接口和Proxy类
 
 注意，如果一个类是final则无法使用Cglib代理
 
+#### jdkProxy
 
+通过接口来实现代理
+
+~~~java
+package dynamicProxy;
+
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+
+public class JDKDynamicPro implements InvocationHandler {
+    private Object target;//这其实业务实现类对象，用来调用具体的业务方法
+
+    /**
+     * 绑定业务对象并返回一个代理类
+     */
+    public Object bind(Object target) {
+        this.target = target;  //接收业务实现类对象参数
+
+        //通过反射机制，创建一个代理类对象实例并返回。用户进行方法调用时使用
+        //创建代理对象时，需要传递该业务类的类加载器（用来获取业务实现类的元数据，在包装方法是调用真正的业务方法）、接口、handler实现类
+        return Proxy.newProxyInstance(target.getClass().getClassLoader(),
+                target.getClass().getInterfaces(), this);
+    }
+
+    /**
+     * 包装调用方法：进行预处理、调用后处理
+     */
+    public Object invoke(Object proxy, Method method, Object[] args)
+            throws Throwable {
+        Object result = null;
+
+        System.out.println("预处理操作——————");
+        //调用真正的业务方法
+        result = method.invoke(target, args);
+        System.out.println("调用后处理——————");
+        return result;
+    }
+
+    public static void main(String[] args) {
+        CountImpl count = new CountImpl();
+        JDKDynamicPro jdkDynamicPro = new JDKDynamicPro();
+        Count bind = (Count) jdkDynamicPro.bind(count);//这里只能转为接口，不然会报错，所以JDK动态代理是对接口的代理
+        bind.queryCount();
+    }
+}
+
+~~~
+
+#### Cglib
+
+  cglib是针对类来实现代理的，原理是对指定的业务类生成一个子类，并覆盖其中业务方法实现代理。因为采用的是继承，所以不能对final修饰的类进行代理。 
+
+~~~java
+public class BookFacadeCglib implements MethodInterceptor {  
+    private Object target;//业务类对象，供代理方法中进行真正的业务方法调用
+  
+    //相当于JDK动态代理中的绑定
+    public Object getInstance(Object target) {  
+        this.target = target;  //给业务对象赋值
+        Enhancer enhancer = new Enhancer(); //创建加强器，用来创建动态代理类
+        enhancer.setSuperclass(this.target.getClass());  //为加强器指定要代理的业务类（即：为下面生成的代理类指定父类）
+        //设置回调：对于代理类上所有方法的调用，都会调用CallBack，而Callback则需要实现intercept()方法进行拦
+        enhancer.setCallback(this); 
+       // 创建动态代理类对象并返回  
+       return enhancer.create(); 
+    }
+    // 实现回调方法 
+    public Object intercept(Object obj, Method method, Object[] args, MethodProxy proxy) throws Throwable { 
+        System.out.println("预处理——————");
+        proxy.invokeSuper(obj, args); //调用业务类（父类中）的方法
+        System.out.println("调用后操作——————");
+        return null; 
+    } 
+~~~
+
+
+
+#### 区别
 
 JDKProxy：通过java的内部反射机制实现
 
@@ -283,8 +364,6 @@ Cglib：借助ASM实现，ASM是一个字节码修改的框架
 反射机制在类生成的过程中比较高效
 
 ASM在生成类之后的执行过程中比较高效
-
-
 
 静态代码，编译时织入或是类加载时织入
 

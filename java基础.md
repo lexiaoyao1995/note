@@ -346,6 +346,11 @@ AIO方式使用于连接数目多且连接比较长（重操作）的架构，�
 
 ## 快速失败和安全失败
 
+> ```
+> fast-fail事件产生的条件：当多个线程对Collection进行操作时，若其中某一个线程通过iterator去遍历集合时，该集合的内容被其他线程所改变；则会抛出ConcurrentModificationException异常。
+> fast-fail解决办法：通过util.concurrent集合包下的相应类去处理，则不会产生fast-fail事件。
+> ```
+
 Iterator的安全失败是基于对底层集合做拷贝，因此，它不受源集合上修改的影响。**java.util包下面的所有的集合类都是快速失败的，而java.util.concurrent包下面的所有的类都是安全失败的**。**快速失败的迭代器会抛出ConcurrentModificationException异常**，而安全失败的迭代器永远不会抛出这样的异常。
 
 ##### fail-fast原理

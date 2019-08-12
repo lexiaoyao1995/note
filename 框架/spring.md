@@ -528,3 +528,20 @@ protected List<String> getCandidateConfigurations(AnnotationMetadata metadata,
 ```
 
 这个方法来扫描具有meta-inf/spring-factories文件的jar包，而我们的spring-boot-autoconfigure-1.3.0.x.jar里的spring.factories
+
+## springboot中的tomcat
+
+SpringBoot的启动是通过`new SpringApplication()`实例来启动的，启动过程主要做如下几件事情：
+
+> 1. 配置属性
+> 2. 获取监听器，发布应用开始启动事件
+> 3. 初始化输入参数
+> 4. 配置环境，输出banner
+> 5. 创建上下文
+> 6. 预处理上下文
+> 7. 刷新上下文
+> 8. 再刷新上下文
+> 9. 发布应用已经启动事件
+> 10. 发布应用启动完成事件
+
+而启动Tomcat就是在第7步中“刷新上下文”；Tomcat的启动主要是初始化2个核心组件，**连接器(Connector)和容器（Container）**，一个Tomcat实例就是一个Server，一个Server包含多个Service，也就是多个应用程序，每个Service包含多个连接器（Connetor）和一个容器（Container),而容器下又有多个子容器，按照父子关系分别为：Engine,Host,Context,Wrapper，其中除了Engine外，其余的容器都是可以有多个。

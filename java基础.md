@@ -449,6 +449,14 @@ ConcurrentModificationException是在操作Iterator时抛出的异常。
 
 #### 为什么hashMap的长度是2的指数倍
 
+HashMap存取时，都需要计算当前key应该对应Entry[]数组哪个元素，即计算数组下标；算法如下：
+
+**static** **int** indexFor(**int** h, **int** length) {
+
+​        **return** h & (length-1);
+
+​    }
+
 hash%length==hash&(length-1)的前提是length是2的n次方； 
 
 让取模运算更高效

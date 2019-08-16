@@ -135,6 +135,8 @@ ps -ef | grep XXXX
 由于ping使用的是ICMP协议，有些防火墙会屏蔽ICMP协议，所以有时候ping的结果只能作为参考，ping不通并不一定说明对方IP不存在。
 
 > *ICMP*（Internet Control Message Protocol）Internet控制报文协议。
+>
+> icmp协议是IP层的附属协议，是介于IP层和TCP层之间的协议，一般认为属于IP层协议。
 
 # Git
 

@@ -80,6 +80,13 @@ constructor
 
 创建实例的时候不需要了解其中的细节
 
+### 核心包
+
+- Spring Core
+- Spring Bean
+- SpEL (Spring Expression Language)
+- Spring Context
+
 ### 核心接口
 
 ApplicationContext保存ioc的整个应用上下文，可以通过BeanFactory获取到任意的bean
@@ -443,7 +450,7 @@ Spring容器会将每一个正在创建的Bean 标识符放在一个“当前创
 在这个池中，因此如果在创建Bean过程中发现自己已经在“当前创建Bean池”里时将抛出
 BeanCurrentlyInCreationException异常表示循环依赖；而对于创建完毕的Bean将从“当前创建Bean池”中清除掉。
 
-##### 循环依赖
+##### setter循环依赖
 
 不会抛出异常
 

@@ -386,6 +386,10 @@ ASM在生成类之后的执行过程中比较高效
 
 ## 事务
 
+使用事务非常简单，首先使用注解 @EnableTransactionManagement 开启事务支持后，然后在访问数据库的Service方法上添加注解 @Transactional 便可。
+
+关于事务管理器，不管是JPA还是JDBC等都实现自接口 **PlatformTransactionManager** 如果你添加的是 spring-boot-starter-jdbc 依赖，框架会默认注入 DataSourceTransactionManager 实例。如果你添加的是 spring-boot-starter-data-jpa 依赖，框架会默认注入 JpaTransactionManager 实例。
+
 ### ACID
 
 原子性 （atomicity）:强调事务的不可分割. 
@@ -488,6 +492,10 @@ Spring先是用构造实例化Bean对象 ，此时Spring会将这个实例化结
 # springboot
 
 简化配置，开箱即用，约定大于配置
+
+## SpringApplication.run
+
+SpringApplication.run一共做了两件事,一件是创建SpringApplication对象,在该对象初始化时,找到配置的事件监听器,并保存起来.第二件事就是运行run方法,此时会将刚才保存的事件监听器根据当前时机触发不同的事件,比如容器初始化,容器创建完成等.同时也会刷新IoC容器,进行组件的扫描、创建、加载等工作.
 
 ## 两种上下文
 

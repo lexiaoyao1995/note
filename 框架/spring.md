@@ -386,6 +386,8 @@ ASM在生成类之后的执行过程中比较高效
 
 ## 事务
 
+> Spring并`不直接管理事务，只有当数据库支持事务时，Spring才支持事务`，Spring只不过简化了开发人员实现事务的步骤，Spring提供了多种事务管理器，他们将事务管理的职责委托给Hibernate或者JTA等`持久化机制所提供的相关平台框架的事务`来实现。
+
 使用事务非常简单，首先使用注解 @EnableTransactionManagement 开启事务支持后，然后在访问数据库的Service方法上添加注解 @Transactional 便可。
 
 关于事务管理器，不管是JPA还是JDBC等都实现自接口 **PlatformTransactionManager** 如果你添加的是 spring-boot-starter-jdbc 依赖，框架会默认注入 DataSourceTransactionManager 实例。如果你添加的是 spring-boot-starter-data-jpa 依赖，框架会默认注入 JpaTransactionManager 实例。

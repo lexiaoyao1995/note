@@ -151,6 +151,35 @@ O_DSYNC对CPU的压力最大，datasync次之，O_DIRECT最小；整体SQL语句
 
 2、InnoDB默认用的是行级所，也支持表级锁
 
+3、MyISAM不支持事务，但是支持全文检索
+
+现在的5.7版本MyISAM和Innodb都支持全文检索了
+
+MySQL 5.7.6开始，MySQL内置了ngram全文解析器，用来支持中文、日文、韩文分词。
+
+> 全文检索
+>
+> 只能在类型为CHAR、VARCHAR或者TEXT的字段上创建全文索引。
+>
+> 全文索引只支持InnoDB和MyISAM引擎。
+>
+> MATCH (columnName) AGAINST ('keywords')。MATCH()函数使用的字段名，必须要与创建全文索引时指定的字段名一致。如上面的示例，MATCH (title,body)使用的字段名与全文索引ft_articles(title,body)定义的字段名一致。如果要对title或者body字段分别进行查询，就需要在title和body字段上分别创建新的全文索引。
+>
+> MATCH()函数使用的字段名只能是同一个表的字段，因为全文索引不能够跨多个表进行检索。
+>
+> 如果要导入大数据集，使用先导入数据再在表上创建全文索引的方式要比先在表上创建全文索引再导入数据的方式快很多，所以全文索引是很影响TPS的。
+
+4、MyISAM读的效率比较高，适合多读写少的情况
+
+> **INNODB在做SELECT的时候，要维护的东西比MYISAM引擎多很多:**
+> 1）数据块，INNODB要缓存，MYISAM只缓存索引块，  这中间还有换进换出的减少；
+>  
+>2）innodb寻址要映射到块，再到行，MYISAM记录的直接是文件的OFFSET，定位比INNODB要快
+> 
+>3）INNODB还需要维护MVCC一致；虽然你的场景没有，但他还是需要去检查和维护
+> 
+>MVCC (Multi-Version Concurrency Control)多版本并发控制 
+
 锁分为读锁和写锁，读锁也叫共享锁（for update 可强行加排他锁），写锁也叫排他锁
 
 innoDB在sql没有用到索引的时候，用的是表锁
@@ -626,6 +655,12 @@ show engine innodb status \G;
 - 页被访问，且在老生代**停留时间超过配置阈值**的，才进入新生代，以解决批量数据访问，大量热数据淘汰的问题
 
 ## SQL语句
+
+#### drop delete truncate
+
+- **不再需要一张表的时候，用drop**
+- **想删除部分数据行时候，用delete，并且带上where子句**
+- **保留表而删除所有数据的时候用truncate**
 
 #### 常用
 

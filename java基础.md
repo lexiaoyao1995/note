@@ -515,6 +515,37 @@ ConcurrentModificationException是在操作Iterator时抛出的异常。
 
 **add**
 
+~~~java
+  private transient volatile Object[] array;
+
+  public boolean add(E e) {
+
+      final ReentrantLock lock = this.lock;
+      lock.lock();
+
+      try {
+          Object[] elements = getArray();
+          int len = elements.length;
+
+          // 对数组拷贝一个副本出来
+          Object[] newElements = Arrays.copyOf(elements, len + 1);
+
+          // 对副本数组进行修改，比如在里面加入一个元素
+          newElements[len] = e;
+
+          // 然后把副本数组赋值给volatile修饰的变量
+          setArray(newElements);
+          return true;
+
+
+      } finally {
+          lock.unlock();
+      }
+  }
+~~~
+
+
+
 调用add方法的线程会首先获取锁，然后调用lock方法对list进行加锁（了解ReentrantLock的知道这是个独占锁，所以多线程下只有一个线程会获取到锁）
 
 只有线程会获取到锁，所以只有一个线程会去更新这个数组，此过程中别的调用add方法的线程被阻塞等待

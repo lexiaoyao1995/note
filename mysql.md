@@ -223,6 +223,10 @@ innodb 索引和数据放在一个文件里的   *MyISAM* 索引和数据是分�
 
 mysql会一直向右匹配直到遇到范围查询（< > between like）就停止匹配
 
+> 联合索引的最左原则就是建立索引KEY union_index (a,b,c)时，**等于建立了(a)、(a,b)、(a,b,c)三个索引**，从形式上看就是索引向左侧聚集，所以叫做最左原则，因此最常用的条件应该放到联合索引的组左侧。
+>
+> 利用联合索引加速查询时，联合查询条件符合“交换律”，也就是where a = 1 and b = 1 等价于 where b = 1 and a = 1，这两种写法都能利用索引KEY union_index (a,b,c)。
+
 比如a=3 and b=4 and c>5 and d=6 如果建立（a,b,c,d）顺序的索引，d是用不到索引的，如果建立的是（abdc）的索引则可以用到，、
 
 其中=和in可以乱序
@@ -583,6 +587,10 @@ Gap Locks触发时机：
 
 加锁的方式：自动加锁。查询操作（SELECT），会自动给涉及的所有表加读锁，更新操作（UPDATE、DELETE、INSERT），会自动给涉及的表加写锁。也可以显示加锁：
 
+### 锁的是什么
+
+在MySQL中，**行级锁**并不是直接锁记录，**而是锁索引**。索引分为主键索引和非主键索引两种，如果一条sql语句操作了主键索引，MySQL就会锁定这条主键索引；如果一条语句操作了非主键索引，MySQL会先锁定该非主键索引，再锁定相关的主键索引。
+
 ### 死锁
 
 #### **如何发现死锁**
@@ -770,9 +778,83 @@ NoSQL越来越受欢迎，其中最重要的实现是Apache Cassandra，MongoDB�
 
 ## NewSQL
 
+比如Tidb
+
 NewSQL是一种相对较新的形式，旨在使用现有的编程语言和以前不可用的技术来结合SQL和NoSQL中最好的部分。 NewSQL目标是将SQL的ACID保证与NoSQL的可扩展性和高性能相结合。
 
 显然，因为结合了过去仅单独存在的优点，NewSQL看起来很有前途; 或许，在未来的某个时候，它将成为大多数人使用的标准。 不幸的是，目前大多数NewSQL数据库都是专有软件或仅适用于特定场景，这显然限制了新技术的普及和应用。
 
 除此之外，NewSQL在每个方面比较均匀，每个解决方案都有自己的缺点和优势。 例如，SAP HANA可以轻松处理低到中等的事务性工作负载，但不使用本机集群，MemSQL对于集群分析很有用，但在ACID事务上表现出较差的一致性，等等。 因此，在这些解决方案变得真正普及之前，可能还需要一段时间。
 
+# 新技术
+
+## HybridDB for MySQL
+
+HybridDB for MySQL（原名petadata）是面向在线事务（OLTP）和在线分析（OLAP）混合场景的关系型数据库。
+
+HybridDB for MySQL是分布式数据库，摆脱单机硬件资源限制，提供横向扩展能力，容量和性能随节点数目增加而线性增加。
+
+采用的数据库引擎是TokuDB
+
+TokuDB是TokuTek公司（已被 Percona收购）研发的新引擎，支持事务/MVCC，有着出色的数据压缩功能，支持异步写入数据功能。
+
+TokuDB索引结构采用fractal tree数据结构，是buffer tree的变种，写入性能优异，适合写多读少的场景。除此之外，TokuDB还支持在线加减字段，在线创建索引，锁表时间很短。
+
+### TokuDB优势
+
+**数据压缩**
+
+TokuDB最显著的优势就是数据压缩，支持多种压缩算法，用户可按照实际的资源消耗修改压缩算法，生产环境下推荐使用zstd，实测的压缩比是4:1。
+
+**在线增减字段**
+
+TokuDB还支持在轻微阻塞DML情况下，增加或删除表中的字段或者扩展字段长度。
+
+执行在线增减字段时表会锁一小段时间，一般是秒级锁表。锁表时间短得益于fractal tree的实现。TokuDB会把这些操作放到后台去做，具体实现是：往root块推送一个广播msg，通过逐层apply这个广播msg实现增减字段的操作。
+
+**稳定高效写入性能**
+
+TokuDB索引采用fractal tree结构，索引修改工作由后台线程异步完成。TokuDB会把每个索引更新转化成一个msg，在server层上下文只把msg加到root（或者某个internal）块msg buffer中便可返回；msg应用到leaf块的工作是由后台线程完成的，此后台线程被称作cleaner，负责逐级apply msg直至leaf块
+
+DML语句被转化成FT*INSERT/FT*DELETE，此类msg只应用到leaf节点。
+
+在线加索引/在线加字段被转化成广播msg，此类msg会被应用到每个数据块的每个数据项。
+
+实际上，fractal tree是buffer tree的变种，在索引块内缓存更新操作，把随机请求转化成顺序请求，缩短server线程上下文的访问路径，缩短RT。所以，TokuDB在高并发大数据量场景下，可以提供稳定高效的写入性能。
+
+除此之外，TokuDB实现了bulk fetch优化，range query性能也是不错的。
+
+**在线增加索引**
+
+TokuDB支持在线加索引不阻塞更新语句 (insert, update, delete) 的执行。可以通过变量 tokudb*create*index_online 来控制是否开启该特性, 不过遗憾的是目前只能通过 CREATE INDEX 语法实现在线创建；如果用ALTER TABLE创建索引还是会锁表的。
+
+### 分形树
+
+TokuDB中使用了一个称之为Fractal tree(分形树)的索引结构来解决随机IO的问题。它主要是能让随机IO变成顺序IO。因此获得很好的写入速度，也因为这个，有很好的数据压缩效果。但如果是顺序写入，性能不如BTree。
+
+它适用于存档，以及大量随机插入的场景。
+
+![](pic/爱奇艺20190830144911.png)
+
+## Tidb
+
+TiDB 是一个分布式 NewSQL (SQL 、 NoSQL 和 NewSQL 的优缺点比较 )数据库。它支持水平弹性扩展、ACID 事务、标准 SQL、MySQL 语法和 MySQL 协议，具有数据强一致的高可用特性，是一个不仅适合 OLTP 场景还适合 OLAP 场景的混合数据库。
+
+> 当今的数据处理大致可以分成两大类：联机事务处理OLTP（on-line transaction processing）、联机分析处理OLAP（On-Line Analytical Processing）。
+>
+> OLTP是传统的关系型数据库的主要应用，主要是基本的、日常的事务处理，例如银行交易。
+>
+> OLAP是数据仓库系统的主要应用，支持复杂的分析操作，侧重决策支持，并且提供直观易懂的查询结果.
+
+### 架构
+
+![](pic/爱奇艺20190830145704.png)
+
+TiDB 集群主要分为三个组件：
+**１TiDB Server**
+　TiDB Server 负责接收 SQL 请求，处理 SQL 相关的逻辑，并通过 PD 找到存储计算所需数据的 TiKV 地址，与 TiKV 交互获取数据，最终返回结果。 TiDB Server是无状态的，其本身并不存储数据，只负责计算，可以无限水平扩展，可以通过负载均衡组件（如LVS、HAProxy 或F5）对外提供统一的接入地址。
+**２PD Server**
+　Placement Driver (简称 PD) 是整个集群的管理模块，其主要工作有三个： 一是存储集群的元信息（某个 Key 存储在哪个 TiKV 节点）；二是对 TiKV 集群进行调度和负载均衡（如数据的迁移、Raft group leader的迁移等）；三是分配全局唯一且递增的事务 ID。 　　
+　PD 是一个集群，需要部署奇数个节点，一般线上推荐至少部署 3 个节点。
+**３TiKV Server**
+　TiKV Server 负责存储数据，从外部看 TiKV 是一个分布式的提供事务的 Key-Value 存储引擎。存储数据的基本单位是 Region，每个 Region 负责存储一个 Key Range （从 StartKey 到EndKey 的左闭右开区间）的数据，每个 TiKV 节点会负责多个 Region 。TiKV 使用 Raft协议做复制，保持数据的一致性和容灾。副本以 Region 为单位进行管理，不同节点上的多个 Region 构成一个 RaftGroup，互为副本。数据在多个 TiKV 之间的负载均衡由 PD 调度，这里也是以 Region 为单位进行调度。

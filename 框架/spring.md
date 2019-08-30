@@ -491,6 +491,10 @@ Spring先是用构造实例化Bean对象 ，此时Spring会将这个实例化结
 1. filter 注册 FilterRegistrationBean，并实现filter接口
 2. intercept 实现HandlerInterceptor接口，在WebMvcConfigurerAdapter中注册
 
+![](../pic/爱奇艺20190829151935.png)
+
+![](../pic/爱奇艺20190829152010.png)
+
 # springboot
 
 简化配置，开箱即用，约定大于配置

@@ -64,6 +64,23 @@
 
 # JavaSE
 
+## 注解
+
+元注解即作用在注解上的注解，用来描述注解。
+
+Java中内置了5中元注解，分别是： @Retention、@Documented、@Target、@Inherited、@Repeatable 。
+
+```java
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.FIELD,ElementType.TYPE, ElementType.METHOD})
+public @interface Yeonon {
+}
+```
+
+### transient关键字
+
+transient关键字可修饰于类成员变量，作用是当类的对象发生序列化的时候，最终的序列化内容不包括被修饰的成员变量。
+
 ### Static关键字
 
 static变量放在jvm内存的方法区
@@ -138,6 +155,10 @@ T t = operate();
 简单总结下：
 
 T 是一个 确定的 类型，通常用于泛型类和泛型方法的定义，？是一个 不确定 的类型，通常用于泛型方法的调用代码和形参，不能用于定义类和泛型方法。
+
+#### 泛型擦除
+
+经常在论坛、社区里听到Java的泛型实现是伪泛型，而C#、C++的泛型实现才是真正的泛型。这么说是有原因的，因为Java源码编译后的字节码里不存在什么类型参数。
 
 ### final关键字
 
@@ -312,6 +333,54 @@ newInstance方法调用无参的构造函数创建对象
 
 非阻塞	非阻塞状态下, 如果没有东西可读, 或者不可写, 读写函数马上返回, 而不会等待 
 
+## Java 1.4 NIO
+
+可以更高速进行io操作
+
+速度的提高来自于所使用的结构更接近于操作系统执行I/O的方式：通道（Channel）和缓冲器(Buffer)
+
+### 缓冲器（Buffer）
+
+Buffer是一个对象，它包含着一些需要读取的数据或者是要传输的数据。
+
+在面向流的I/O中我们直接通过流对象直接和数据进行交互的，但是在NIO中我们和数据的交互必须通过Buffer了。
+
+![](pic/爱奇艺20190905150653.png)
+
+### 通道（Channel）
+
+`Channel`是一个对象，缓冲器可以通过它进行读取和写入数据。和原来的I/O做个比较，通道就像个流。正如前面所提到的，`Channel`是不和数据进行交互。但是它和流有一点不同，就是通道是双向的，而流只能是单向的（只能是InputStream或者OutputStream），但是通道可以用于读、写或者是同时用于读写。
+
+1、fileChannel
+
+note：
+
+transferTo：把fileChannel中的数据拷贝到另外一个channel
+
+transferFrom：把另外一个channel中的数据拷贝到fileChannel
+
+避免两次用户态和内核态间的上下文切换，即零靠别，效率高
+
+2、DatagramChannel
+
+3、SocketChannel
+
+4、ServerSocketChannel
+
+![](pic/爱奇艺20190905150811.png)
+
+### 选择器 Selector
+
+Selector 是 Java NIO 的一个组件，它用于监听多个 Channel 的各种状态，用于管理多个 Channel。但本质上由于 FileChannel 不支持注册选择器，所以 Selector 一般被认为是服务于网络套接字通道的。
+
+而大家口中的「NIO 是非阻塞的」，准确来说，指的是网络编程中客户端与服务端连接交换数据的过程是非阻塞的。普通的文件读写依然是阻塞的。
+
+![](pic/爱奇艺20190905150931.png)
+
+## Linux IO 模型
+
+Java的NIO映射到Linux操作系统就是如上图所示的非阻塞I/O模型，就是io多路复用
+
 ### Nio下的三种轮询方式
 
  NIO的最重要的地方是当一个连接创建后，不需要对应一个线程，这个连接会被注册到多路复用器上面，所以所有的连接只需要一个线程就可以搞定，当这个线程中的多路复用器进行轮询的时候，发现连接上有请求的话，才开启一个线程进行处理，也就是一个请求一个线程模式。 
@@ -322,6 +391,10 @@ newInstance方法调用无参的构造函数创建对象
 
 #### 无差别轮询（poll/select） 
 
+>   select==>时间复杂度O(n)
+>
+> 它仅仅知道了，有I/O事件发生了，却并不知道是哪那几个流（可能有一个，多个，甚至全部），我们只能无差别轮询所有流，找出能读出数据，或者写入数据的流，对他们进行操作。所以select具有O(n)的无差别轮询复杂度，同时处理的流越多，无差别轮询时间就越长。  
+
 为了避免CPU空转，可以引进了一个代理（一开始有一位叫做select的代理，后来又有一位叫做poll的代理，不过两者的本质是一样的）。这个代理比较厉害，可以同时观察许多流的I/O事件，在空闲的时候，会把当前线程阻塞掉，当有一个或多个流有I/O事件时，就从阻塞态中醒来，于是我们的程序就会轮询一遍所有的流。
 
 于是，如果没有I/O事件产生，我们的程序就会阻塞在select处。但是依然有个问题，我们从select那里仅仅知道了，有I/O事件发生了，但却并不知道是那几个流（可能有一个，多个，甚至全部），我们只能无差别轮询所有流，找出能读出数据，或者写入数据的流，对他们进行操作。
@@ -329,6 +402,8 @@ newInstance方法调用无参的构造函数创建对象
 但是使用select，我们有O(n)的无差别轮询复杂度，同时处理的流越多，没一次无差别轮询时间就越长。
 
 #### epoll
+
+> epoll可以理解为event poll，不同于忙轮询和无差别轮询，epoll会把哪个流发生了怎样的I/O事件通知我们。所以我们说epoll实际上是事件驱动（每个事件关联上fd）的，此时我们对这些流的操作都是有意义的。（复杂度降低到了O(1)）
 
 epoll可以理解为event poll，不同于忙轮询和无差别轮询，**epoll之会把哪个流发生了怎样的I/O事件通知我们**。此时我们对这些流的操作都是有意义的。（复杂度降低到了O(1)） 
 
@@ -371,58 +446,6 @@ epoll在被内核初始化时（操作系统启动），同时会开辟出epoll�
 #### epoll和select的区别：
 
 进程通过将一个或多个fd传递给select或poll系统调用，阻塞在select;这样select/poll可以帮我们侦测许多fd是否就绪；但是select/poll是顺序扫描fd是否就绪，而且支持的fd数量有限。linux还提供了一个epoll系统调用，epoll是基于事件驱动方式，而不是顺序扫描,当有fd就绪时，立即回调函数rollback
-
-#### nio：构建多路复用的，同步非阻塞的io操作
-
-##### nio核心组成    
-
-channels
-
-Buffers
-
-Selectors
-
-##### Channels
-
-1、fileChannel
-
-note：
-
-transferTo：把fileChannel中的数据拷贝到另外一个channel
-
-transferFrom：把另外一个channel中的数据拷贝到fileChannel
-
-避免两次用户态和内核态间的上下文切换，即零靠别，效率高
-
-2、DatagramChannel
-
-3、SocketChannel
-
-4、ServerSocketChannel
-
-#### io多路复用：调用系统级别的Select/poll/epoll
-
-区别
-
-1、支持一个进程能打开的最大连接数
-
-select  上限比较小
-
-poll  无限
-
-epoll  上限大
-
-2、文件剧增带来的效率问题
-
-select  poll  线性下降
-
-epoll  性能比较好
-
-3、消息传递
-
-select 和 poll 需要将消息传递到用户空间，需要内存的拷贝动作
-
-epoll 通过内存和用户空间共享一块内存来实现，性能较高
 
 ### AIO 异步io  基于事件和回调
 

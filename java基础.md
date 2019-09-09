@@ -787,8 +787,7 @@ ConcurrentHashMap的JDK8与JDK7版本的并发实现相比，最大的区别在�
 
 **不需要加锁**
 
-- get操作全程不需要加锁是因为Node的成员val是用volatile修饰的和
-- 数组用volatile修饰没有关系，数组用volatile其实就是为了使得Node数组在扩容的时候对其他线程具有可见性而加的
+- get操作全程不需要加锁是因为Node的成员val是用volatile修饰的和数组用volatile修饰没有关系，数组用volatile其实就是为了使得Node数组在扩容的时候对其他线程具有可见性而加的
 - 数组用volatile修饰主要是保证在数组扩容的时候保证可见性。
 
 ##### 比起1.7的优化：

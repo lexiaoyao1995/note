@@ -24,6 +24,18 @@
 
 整数型，浮点型，字符串型，二级制，时间
 
+##### BLOB 和 TEXT
+
+BLOB 是一个二进制对象，可以容纳可变数量的数据。TEXT 是一个不区分大小写 的 BLOB。 
+
+BLOB 和 TEXT 类型之间的唯一区别在于对 BLOB 值进行排序和比较时区分大小 写，对 TEXT 值不区分大小写。 
+
+**行溢出数据**
+
+一般认为BLOB，LOG这类的大对象类型的存储是存放在数据页面之外，也就是存放在uncompressed Blob page，但是这个理解其实有偏差，Blob可以不将数据放在溢出页面，而且即便是varchar类型，依然有可能被存放在行溢出数据。这个取决于这个字段具体的大小。
+
+ 
+
 ## 数据 磁盘 
 
 在 InnoDB 存储引擎中，所有的数据都被逻辑地存放在表空间中，表空间（tablespace）是存储引擎中最高的存储逻辑单位，在表空间的下面又包括段（segment）、区（extent）、页（page）：
@@ -434,7 +446,6 @@ is not null  不走索引
 
 !=、<> 不走索引
 
-
 隐式转换-不走索引（name 字段为 string类型，这里123为数值类型，进行了类型转换，所以不走索引,改为 '123' 则走索引）
 explain select * from users u where u.name = 123
 
@@ -442,7 +453,7 @@ explain select * from users u where u.name = 123
 
 ##### IS NULL`、`IS NOT NULL`、`!= 是否走索引
 
-> 并不是完全不走，又成本决定。
+> 并不是完全不走，由成本决定。
 >
 > 成本组成主要有两个方面：
 >
@@ -1276,3 +1287,25 @@ TiDB 集群主要分为三个组件：
 　PD 是一个集群，需要部署奇数个节点，一般线上推荐至少部署 3 个节点。
 **３TiKV Server**
 　TiKV Server 负责存储数据，从外部看 TiKV 是一个分布式的提供事务的 Key-Value 存储引擎。存储数据的基本单位是 Region，每个 Region 负责存储一个 Key Range （从 StartKey 到EndKey 的左闭右开区间）的数据，每个 TiKV 节点会负责多个 Region 。TiKV 使用 Raft协议做复制，保持数据的一致性和容灾。副本以 Region 为单位进行管理，不同节点上的多个 Region 构成一个 RaftGroup，互为副本。数据在多个 TiKV 之间的负载均衡由 PD 调度，这里也是以 Region 为单位进行调度。
+
+# 面试题
+
+### 大量数据如何优化**DISTINCT** 
+
+DISTINCT操作只需要找出所有不同的值就可以了。而GROUP BY操作还要为其他聚集函数进行准备工作。从这一点上将，GROUP BY操作做的工作应该比DISTINCT所做的工作要多一些。
+
+但实际上，GROUP BY 效率会更高点，对于DISTINCT操作，它会读取了所有记录，而GROUP BY需要读取的记录数量与分组的组数量一样多，也就是说比实际存在的记录数目要少很多，因此单表查询时建议用group by替换distinct。
+
+##### 多表查询使用EXISTS
+
+用EXISTS代替DISTINCT。EXISTS 使查询更为迅速，因为RDBMS核心模块将在子查询的条件一旦满足后，立刻返回结果。
+
+低效率：
+select distinct userid,username from user,userinfo where user.userid=userinfo.userid
+高效率：
+select userid,username from user where exists (select 'T' from userinfo where userinfo.userid=user.userid)
+
+其中T的意思是：
+因为exists只是看子查询是否有结果返回，而并不关心返回的是什么内容，因此通常建议写一个常量，至少性能不可能比select 一个具体的字段出来差，而某些情况下，select具体的字段出来性能可能比select 一个常量出来要差得多。
+
+你可以在大数据量的数据库里测试一下上面的sql。不过以上方案仅适合userid为唯一主键的情况。
